@@ -6,9 +6,9 @@ This project supports UART and GPIO in Windows (32 or 64 bits), Linux and MacOS 
 
 The product datasheets and application notes can be found here:
 
-- [FT232R Datasheet (DS_FT232R.pdf)](https://www.ftdichip.com/Support/Documents/DataSheets/ICs/DS_FT232R.pdf)
-- [D2XX Programmer's Guide](https://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf)
-- [AN232R-01: Bit Bang Modes for the FT232R](https://www.ftdichip.com/Support/Documents/AppNotes/AN_232R-01_Bit_Bang_Mode_Available_For_FT232R_and_Vinculum_VNC1L.pdf)
+- [FT232R Datasheet (DS_FT232R.pdf)](https://ftdichip.com/wp-content/uploads/2020/08/DS_FT232R.pdf)
+- [D2XX Programmer's Guide](https://ftdichip.com/wp-content/uploads/2025/06/D2XX_Programmers_Guide.pdf)
+- [AN232R-01: Bit Bang Modes for the FT232R](https://ftdichip.com/wp-content/uploads/2020/08/AN_232R-01_Bit_Bang_Mode_Available_For_FT232R_and_Ft245R.pdf)
 
 You can find this chipset on many USB-to-Serial adapter boards, such as:
 - [Adafruit FTDI Friend](https://www.adafruit.com/product/284)
@@ -281,7 +281,8 @@ dotnet run
 
 ## References
 
-- [FT232R Datasheet](https://www.ftdichip.com/Support/Documents/DataSheets/ICs/DS_FT232R.pdf)
-- [D2XX Programmer's Guide](https://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf)
+- [FT232R Datasheet](https://ftdichip.com/wp-content/uploads/2020/08/DS_FT232R.pdf)
+- [D2XX Programmer's Guide](https://ftdichip.com/wp-content/uploads/2025/06/D2XX_Programmers_Guide.pdf)
+- [AN232R-01: Bit Bang Modes for the FT232R](https://ftdichip.com/wp-content/uploads/2020/08/AN_232R-01_Bit_Bang_Mode_Available_For_FT232R_and_Ft245R.pdf)
 - [FTDI Chip Website](https://www.ftdichip.com/)
 - [.NET IoT Repository](https://github.com/dotnet/iot)
