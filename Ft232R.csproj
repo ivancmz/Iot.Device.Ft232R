@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Ft232RDevice.cs" />
+    <Compile Include="Ft232RGpio.cs" />
+    <Compile Include="Ft232RUart.cs" />
+    <Compile Include="System.Device.Uart\UartConnectionSettings.cs" />
+    <Compile Include="System.Device.Uart\UartDevice.cs" />
+    <Compile Include="Iot.Device.FtCommon\SafeFtHandle.cs" />
+    <Compile Include="Iot.Device.FtCommon\FtFunction.cs" />
+    <Compile Include="Iot.Device.FtCommon\FtBitMode.cs" />
+    <Compile Include="Iot.Device.FtCommon\FtStatus.cs" />
+    <Compile Include="Iot.Device.FtCommon\FtOpenType.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Iot.Device.Bindings" Version="4.0.1" />
+    <PackageReference Include="System.Device.Gpio" Version="4.0.1" />
+  </ItemGroup>
+
+</Project>
