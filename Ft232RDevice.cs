@@ -31,6 +31,9 @@ namespace Iot.Device.Ft232R
         // Only lower 4 bits are used for CBUS0-3
         internal byte CbusMask = 0x00; // Combined direction and value in MMMMVVVV format
 
+        // Thread synchronization for GPIO operations to prevent race conditions
+        internal readonly SemaphoreSlim GpioLock = new SemaphoreSlim(1, 1);
+
         internal bool[] PinOpen = new bool[PinCountConst];
         internal PinMode[] GpioDirections = new PinMode[PinCountConst];
 
@@ -170,27 +173,36 @@ namespace Iot.Device.Ft232R
         {
             GetHandle();
 
-            // Reset to default mode first
-            var ftStatus = FtFunction.FT_SetBitMode(_ftHandle, 0x00, FtBitMode.ResetIoBitMode);
-
-            if (ftStatus != FtStatus.Ok)
+            // Thread-safe GPIO initialization
+            GpioLock.Wait();
+            try
             {
-                throw new IOException($"Failed to reset device {Description}, status: {ftStatus}");
+                // Reset to default mode first
+                var ftStatus = FtFunction.FT_SetBitMode(_ftHandle, 0x00, FtBitMode.ResetIoBitMode);
+
+                if (ftStatus != FtStatus.Ok)
+                {
+                    throw new IOException($"Failed to reset device {Description}, status: {ftStatus}");
+                }
+
+                // Initialize CBUS mask: all pins as inputs (direction=0), all values low (value=0)
+                CbusMask = 0x00; // MMMMVVVV = 00000000
+
+                // Enable CBUS Bit Bang mode for FT232R
+                ftStatus = FtFunction.FT_SetBitMode(_ftHandle, CbusMask, FtBitMode.CbusBitBang);
+
+                if (ftStatus != FtStatus.Ok)
+                {
+                    throw new IOException($"Failed to setup device {Description}, status: {ftStatus} in CBUS bitbang mode");
+                }
+
+                // Discard any pending input
+                DiscardInput();
             }
-
-            // Initialize CBUS mask: all pins as inputs (direction=0), all values low (value=0)
-            CbusMask = 0x00; // MMMMVVVV = 00000000
-
-            // Enable CBUS Bit Bang mode for FT232R
-            ftStatus = FtFunction.FT_SetBitMode(_ftHandle, CbusMask, FtBitMode.CbusBitBang);
-
-            if (ftStatus != FtStatus.Ok)
+            finally
             {
-                throw new IOException($"Failed to setup device {Description}, status: {ftStatus} in CBUS bitbang mode");
+                GpioLock.Release();
             }
-
-            // Discard any pending input
-            DiscardInput();
         }
 
         internal byte GetGpioValues()
@@ -435,10 +447,15 @@ namespace Iot.Device.Ft232R
         /// </summary>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && _ftHandle != null)
+            if (disposing)
             {
-                _ftHandle.Dispose();
-                _ftHandle = null!;
+                if (_ftHandle != null)
+                {
+                    _ftHandle.Dispose();
+                    _ftHandle = null!;
+                }
+
+                GpioLock?.Dispose();
             }
 
             base.Dispose(disposing);

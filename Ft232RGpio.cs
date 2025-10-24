@@ -51,20 +51,38 @@ namespace Iot.Device.Ft232R
                 throw new ArgumentException($"Pin number can only be between 0 and {PinCount - 1}");
             }
 
-            if (DeviceInformation.PinOpen[pinNumber])
+            // Thread-safe pin opening
+            DeviceInformation.GpioLock.Wait();
+            try
             {
-                throw new ArgumentException($"Pin {pinNumber} is already open");
-            }
+                if (DeviceInformation.PinOpen[pinNumber])
+                {
+                    throw new ArgumentException($"Pin {pinNumber} is already open");
+                }
 
-            DeviceInformation.PinOpen[pinNumber] = true;
-            _pinValues.TryAdd(pinNumber, PinValue.Low);
+                DeviceInformation.PinOpen[pinNumber] = true;
+                _pinValues.TryAdd(pinNumber, PinValue.Low);
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
         protected override void ClosePin(int pinNumber)
         {
-            DeviceInformation.PinOpen[pinNumber] = false;
-            _pinValues.Remove(pinNumber);
+            // Thread-safe pin closing
+            DeviceInformation.GpioLock.Wait();
+            try
+            {
+                DeviceInformation.PinOpen[pinNumber] = false;
+                _pinValues.Remove(pinNumber);
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
@@ -75,22 +93,31 @@ namespace Iot.Device.Ft232R
                 throw new ArgumentException($"Pin number can only be between 0 and {PinCount - 1}");
             }
 
-            // CbusMask format: MMMMVVVV
-            // Upper nibble (bits 4-7) = direction (0=input, 1=output)
-            // Lower nibble (bits 0-3) = value (0=low, 1=high)
-
-            if (mode == PinMode.Output)
+            // Thread-safe modification of CbusMask
+            DeviceInformation.GpioLock.Wait();
+            try
             {
-                // Set direction bit in upper nibble
-                DeviceInformation.CbusMask |= (byte)(1 << (pinNumber + 4));
-            }
-            else
-            {
-                // Clear direction bit in upper nibble
-                DeviceInformation.CbusMask &= (byte)(~(1 << (pinNumber + 4)));
-            }
+                // CbusMask format: MMMMVVVV
+                // Upper nibble (bits 4-7) = direction (0=input, 1=output)
+                // Lower nibble (bits 0-3) = value (0=low, 1=high)
 
-            DeviceInformation.SetGpioValues();
+                if (mode == PinMode.Output)
+                {
+                    // Set direction bit in upper nibble
+                    DeviceInformation.CbusMask |= (byte)(1 << (pinNumber + 4));
+                }
+                else
+                {
+                    // Clear direction bit in upper nibble
+                    DeviceInformation.CbusMask &= (byte)(~(1 << (pinNumber + 4)));
+                }
+
+                DeviceInformation.SetGpioValues();
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
@@ -101,8 +128,17 @@ namespace Iot.Device.Ft232R
                 throw new ArgumentException($"Pin number can only be between 0 and {PinCount - 1}");
             }
 
-            // Check upper nibble for direction
-            return ((DeviceInformation.CbusMask >> (pinNumber + 4)) & 0x01) == 0x01 ? PinMode.Output : PinMode.Input;
+            // Thread-safe read of CbusMask
+            DeviceInformation.GpioLock.Wait();
+            try
+            {
+                // Check upper nibble for direction
+                return ((DeviceInformation.CbusMask >> (pinNumber + 4)) & 0x01) == 0x01 ? PinMode.Output : PinMode.Input;
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
@@ -119,14 +155,29 @@ namespace Iot.Device.Ft232R
                 throw new ArgumentException($"Pin number can only be between 0 and {PinCount - 1}");
             }
 
-            var val = DeviceInformation.GetGpioValues();
-            _pinValues[pinNumber] = (((val >> pinNumber) & 0x01) == 0x01) ? PinValue.High : PinValue.Low;
+            // Thread-safe read and update of pin values
+            DeviceInformation.GpioLock.Wait();
+            try
+            {
+                var val = DeviceInformation.GetGpioValues();
+                _pinValues[pinNumber] = (((val >> pinNumber) & 0x01) == 0x01) ? PinValue.High : PinValue.Low;
 
-            return _pinValues[pinNumber];
+                return _pinValues[pinNumber];
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
-        protected override void Toggle(int pinNumber) => Write(pinNumber, !_pinValues[pinNumber]);
+        protected override void Toggle(int pinNumber)
+        {
+            // Read current value and write inverted value
+            // No need for extra lock here - Write() already handles synchronization
+            var currentValue = _pinValues.TryGetValue(pinNumber, out var val) ? val : PinValue.Low;
+            Write(pinNumber, !currentValue);
+        }
 
         /// <inheritdoc/>
         protected override void Write(int pinNumber, PinValue value)
@@ -136,22 +187,31 @@ namespace Iot.Device.Ft232R
                 throw new ArgumentException($"Pin number can only be between 0 and {PinCount - 1}");
             }
 
-            // CbusMask format: MMMMVVVV
-            // Lower nibble (bits 0-3) = value (0=low, 1=high)
-
-            if (value == PinValue.High)
+            // Thread-safe modification of CbusMask and _pinValues
+            DeviceInformation.GpioLock.Wait();
+            try
             {
-                // Set value bit in lower nibble
-                DeviceInformation.CbusMask |= (byte)(1 << pinNumber);
-            }
-            else
-            {
-                // Clear value bit in lower nibble
-                DeviceInformation.CbusMask &= (byte)(~(1 << pinNumber));
-            }
+                // CbusMask format: MMMMVVVV
+                // Lower nibble (bits 0-3) = value (0=low, 1=high)
 
-            DeviceInformation.SetGpioValues();
-            _pinValues[pinNumber] = value;
+                if (value == PinValue.High)
+                {
+                    // Set value bit in lower nibble
+                    DeviceInformation.CbusMask |= (byte)(1 << pinNumber);
+                }
+                else
+                {
+                    // Clear value bit in lower nibble
+                    DeviceInformation.CbusMask &= (byte)(~(1 << pinNumber));
+                }
+
+                DeviceInformation.SetGpioValues();
+                _pinValues[pinNumber] = value;
+            }
+            finally
+            {
+                DeviceInformation.GpioLock.Release();
+            }
         }
 
         /// <inheritdoc/>
