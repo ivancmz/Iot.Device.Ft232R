@@ -11,9 +11,8 @@ The product datasheets and application notes can be found here:
 - [AN232R-01: Bit Bang Modes for the FT232R](https://ftdichip.com/wp-content/uploads/2020/08/AN_232R-01_Bit_Bang_Mode_Available_For_FT232R_and_Ft245R.pdf)
 
 You can find this chipset on many USB-to-Serial adapter boards, such as:
-- [Adafruit FTDI Friend](https://www.adafruit.com/product/284)
-- [SparkFun FTDI Basic Breakout](https://www.sparkfun.com/products/9716)
-- Generic USB-to-Serial cables and adapters
+- [SH-U09C2 USB to TTL Adapter](https://www.deshide.com/product-details_SH-U09C2.html)
+- Other Generic USB-to-Serial cables and adapters
 
 [FTDI](https://www.ftdichip.com/) has multiple chips that may look similar. You will find other implementations with the [FT232H](../Ft232H/README.md) and [FT4222](../Ft4222/README.md).
 
